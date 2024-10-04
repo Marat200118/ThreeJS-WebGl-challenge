@@ -26,34 +26,46 @@ const createEarthScene = () => {
 
   // Load textures
   const textureLoader = new THREE.TextureLoader();
-  const earthTexture = textureLoader.load("/assets/earth.jpg");
+  const dayTexture = textureLoader.load("/assets/earth.jpg");
   const bumpTexture = textureLoader.load("/assets/bump-earth.jpg");
   const nightTexture = textureLoader.load("/assets/earth-night.jpg");
 
   // Earth geometry
   const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
 
-  // Earth material with day and night maps
   const earthMaterial = new THREE.MeshStandardMaterial({
-    map: earthTexture, // Day map
-    bumpMap: bumpTexture, // Bump map for surface details
-    bumpScale: 0.05, // Bump scale for subtle terrain features
-    emissiveMap: nightTexture, // Night map for city lights
-    emissive: new THREE.Color(0xffff88), // Light color for night map
-    emissiveIntensity: 0.8, // Adjust night light brightness
+    map: dayTexture, // Day map
+    bumpMap: bumpTexture,
+    bumpScale: 0.05,
+    emissiveMap: nightTexture,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: 1.0, 
   });
 
+  // Earth mesh
   const earth = new THREE.Mesh(earthGeometry, earthMaterial);
   scene.add(earth);
 
   // Add directional light to simulate the sun
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5); // Sunlight
-  directionalLight.position.set(50, 0, 30); // Sun position
-  directionalLight.shadow.mapSize.width = 1024;
-  directionalLight.shadow.mapSize.height = 1024;
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5);
+  directionalLight.position.set(50, 0, 30);
   scene.add(directionalLight);
 
-  // Add an ambient light for soft global illumination
+  earthMaterial.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      `#include <emissivemap_fragment>`,
+      `
+        #ifdef USE_EMISSIVEMAP
+          vec4 emissiveColor = texture2D( emissiveMap, vEmissiveMapUv );
+
+          emissiveColor *= 1.0 - smoothstep(-0.9, 0.1, dot(normalize(vNormal), directionalLights[0].direction));
+
+          totalEmissiveRadiance *= emissiveColor.rgb;
+        #endif
+      `
+    );
+  };
+
   const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
   scene.add(ambientLight);
 
@@ -61,17 +73,13 @@ const createEarthScene = () => {
   scene.add(lightHelper);
 
   // Animation loop
-  // Animation loop
   const animate = () => {
     requestAnimationFrame(animate);
 
-    // Rotate the Earth slowly
-    earth.rotation.y += 0.001;
+    earth.rotation.y += 0.0005;
 
-    // Update controls
     controls.update();
 
-    // Render the scene
     renderer.render(scene, camera);
   };
 
