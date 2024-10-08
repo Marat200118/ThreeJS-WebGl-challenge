@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-// Create the scene, camera, and renderer
 const createEarthScene = () => {
   const scene = new THREE.Scene();
 
@@ -20,17 +19,15 @@ const createEarthScene = () => {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
 
-  // Add OrbitControls for interactivity
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
-  // Load textures
   const textureLoader = new THREE.TextureLoader();
   const dayTexture = textureLoader.load("/assets/earth.jpg");
   const bumpTexture = textureLoader.load("/assets/bump-earth.jpg");
   const nightTexture = textureLoader.load("/assets/earth-night.jpg");
+  const cloudTexture = textureLoader.load("/assets/clouds.png");
 
-  // Earth geometry
   const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
 
   const earthMaterial = new THREE.MeshStandardMaterial({
@@ -39,14 +36,21 @@ const createEarthScene = () => {
     bumpScale: 0.05,
     emissiveMap: nightTexture,
     emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 1.0, 
+    emissiveIntensity: 1.0,
   });
 
-  // Earth mesh
   const earth = new THREE.Mesh(earthGeometry, earthMaterial);
   scene.add(earth);
 
-  // Add directional light to simulate the sun
+  const cloudGeometry = new THREE.SphereGeometry(10.05, 64, 64);
+  const cloudMaterial = new THREE.MeshStandardMaterial({
+    alphaMap: cloudTexture,
+    transparent: true,
+    side: THREE.DoubleSide,
+  });
+  const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+  scene.add(clouds);
+
   const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5);
   directionalLight.position.set(50, 0, 30);
   scene.add(directionalLight);
@@ -72,11 +76,117 @@ const createEarthScene = () => {
   const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
   scene.add(lightHelper);
 
-  // Animation loop
+  const createSatellite = (
+    scene,
+    orbitRadius,
+    orbitSpeed,
+    startAngle,
+    direction
+  ) => {
+    const satelliteGroup = new THREE.Group();
+
+    // Satellite Main Body
+    const bodyGeometry = new THREE.BoxGeometry(0.6, 0.4, 0.4); // Smaller body
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+    const satelliteBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    satelliteGroup.add(satelliteBody);
+
+    // Solar Panel Support Arms
+    const armGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1, 32);
+    const armMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+
+    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(-0.8, 0, 0);
+    leftArm.rotation.z = Math.PI / 2;
+    satelliteGroup.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(0.8, 0, 0);
+    rightArm.rotation.z = Math.PI / 2;
+    satelliteGroup.add(rightArm);
+
+    // Solar Panels
+    const panelGeometry = new THREE.PlaneGeometry(1.5, 0.5);
+    const panelMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0000ff,
+      side: THREE.DoubleSide, // Panels are visible from both sides
+    });
+
+    const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+    leftPanel.position.set(-2.2, 0, 0);
+    satelliteGroup.add(leftPanel);
+
+    const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+    rightPanel.position.set(2.2, 0, 0);
+    satelliteGroup.add(rightPanel);
+
+    // Antenna Dish
+    const dishBaseGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 32);
+    const dishBaseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+    });
+    const dishBase = new THREE.Mesh(dishBaseGeometry, dishBaseMaterial);
+    dishBase.position.set(0, 0.2, -0.2);
+    satelliteGroup.add(dishBase);
+
+    const dishGeometry = new THREE.CylinderGeometry(0, 0.15, 0.3, 32, 1, true);
+    const dishMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+    const dish = new THREE.Mesh(dishGeometry, dishMaterial);
+    dish.position.set(0, 0.45, -0.2);
+    dish.rotation.x = -Math.PI / 2;
+    satelliteGroup.add(dish);
+
+    satelliteGroup.scale.set(0.5, 0.5, 0.5);
+
+    satelliteGroup.position.set(
+      orbitRadius * Math.cos(startAngle),
+      0,
+      orbitRadius * Math.sin(startAngle)
+    );
+
+    scene.add(satelliteGroup);
+
+    return {
+      group: satelliteGroup,
+      orbitRadius,
+      orbitSpeed,
+      angle: startAngle,
+      direction,
+    };
+  };
+
+  const satellites = [];
+  const satelliteCount = 5; 
+
+  for (let i = 0; i < satelliteCount; i++) {
+    const orbitRadius = 15 + Math.random() * 10; // Random radius between 15 and 25
+    const orbitSpeed = 0.001 + Math.random() * 0.002; // Random speed between 0.001 and 0.003
+    const startAngle = Math.random() * Math.PI * 2; // Random start angle
+    const direction = Math.random() > 0.5 ? 1 : -1; // Random orbit direction (clockwise/counterclockwise)
+
+    const satellite = createSatellite(
+      scene,
+      orbitRadius,
+      orbitSpeed,
+      startAngle,
+      direction
+    );
+    satellites.push(satellite);
+  }
+
   const animate = () => {
     requestAnimationFrame(animate);
 
     earth.rotation.y += 0.0005;
+
+    clouds.rotation.y += 0.0007;
+
+    satellites.forEach((satellite) => {
+      satellite.angle += satellite.orbitSpeed * satellite.direction;
+      satellite.group.position.x = satellite.orbitRadius * Math.cos(satellite.angle);
+      satellite.group.position.z = satellite.orbitRadius * Math.sin(satellite.angle);
+      satellite.group.lookAt(earth.position);
+    });
 
     controls.update();
 
@@ -86,7 +196,6 @@ const createEarthScene = () => {
   animate();
 };
 
-// Initialize the scene
 const init = () => {
   createEarthScene();
 };
