@@ -27,6 +27,11 @@ const createEarthScene = () => {
   const bumpTexture = textureLoader.load("/assets/bump-earth.jpg");
   const nightTexture = textureLoader.load("/assets/earth-night.jpg");
   const cloudTexture = textureLoader.load("/assets/clouds.png");
+  const gayabackground = textureLoader.load("/assets/gayabackground.png");
+  gayabackground.mapping = THREE.EquirectangularReflectionMapping;
+  gayabackground.opacity = 0.5;
+
+  scene.background = gayabackground;
 
   const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
 
