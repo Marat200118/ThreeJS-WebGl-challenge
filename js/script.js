@@ -1,5 +1,15 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { vertexShader, fragmentShader } from '/shaders/basicShader.js';
+
+
+// function loadShader(path, callback) {
+//   fetch(path)
+//     .then((response) => response.text())
+//     .then((shader) => {
+//       callback(shader);
+//     });
+// }
 
 const createEarthScene = () => {
   const scene = new THREE.Scene();
@@ -47,6 +57,12 @@ const createEarthScene = () => {
   const earth = new THREE.Mesh(earthGeometry, earthMaterial);
   scene.add(earth);
 
+   const shaderMaterial = new THREE.ShaderMaterial({
+     vertexShader: vertexShader, // Use the imported vertex shader
+     fragmentShader: fragmentShader, // Use the imported fragment shader
+   });
+
+
   const cloudGeometry = new THREE.SphereGeometry(10.05, 64, 64);
   const cloudMaterial = new THREE.MeshStandardMaterial({
     alphaMap: cloudTexture,
@@ -80,6 +96,24 @@ const createEarthScene = () => {
 
   const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
   scene.add(lightHelper);
+
+  let useShader = false;
+  const button = document.createElement("button");
+  button.innerHTML = "Toggle Shader";
+  button.style.position = "absolute";
+  button.style.top = "20px";
+  button.style.left = "20px";
+  document.body.appendChild(button);
+
+  button.addEventListener("click", () => {
+    if (useShader) {
+      earth.material = earthMaterial; // Switch back to original material
+    } else {
+      earth.material = shaderMaterial; // Apply the shader material
+    }
+    useShader = !useShader;
+  });
+
 
   const createSatellite = (
     scene,
@@ -161,7 +195,7 @@ const createEarthScene = () => {
   };
 
   const satellites = [];
-  const satelliteCount = 5; 
+  const satelliteCount = 5;
 
   for (let i = 0; i < satelliteCount; i++) {
     const orbitRadius = 15 + Math.random() * 10; // Random radius between 15 and 25
@@ -188,10 +222,13 @@ const createEarthScene = () => {
 
     satellites.forEach((satellite) => {
       satellite.angle += satellite.orbitSpeed * satellite.direction;
-      satellite.group.position.x = satellite.orbitRadius * Math.cos(satellite.angle);
-      satellite.group.position.z = satellite.orbitRadius * Math.sin(satellite.angle);
+      satellite.group.position.x =
+        satellite.orbitRadius * Math.cos(satellite.angle);
+      satellite.group.position.z =
+        satellite.orbitRadius * Math.sin(satellite.angle);
       satellite.group.lookAt(earth.position);
     });
+
 
     controls.update();
 
@@ -201,7 +238,7 @@ const createEarthScene = () => {
   animate();
 };
 
-const init = () => {
+const init = async () => {
   createEarthScene();
 };
 
