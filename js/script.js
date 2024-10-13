@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { vertexShader, fragmentShader } from '/shaders/basicShader.js';
+import { vertexShader, fragmentShader } from '/shaders/planetShader.js';
 
 
 // function loadShader(path, callback) {
@@ -57,10 +57,24 @@ const createEarthScene = () => {
   const earth = new THREE.Mesh(earthGeometry, earthMaterial);
   scene.add(earth);
 
-   const shaderMaterial = new THREE.ShaderMaterial({
-     vertexShader: vertexShader, // Use the imported vertex shader
-     fragmentShader: fragmentShader, // Use the imported fragment shader
-   });
+  //  const shaderMaterial = new THREE.ShaderMaterial({
+  //    vertexShader: vertexShader, // Use the imported vertex shader
+  //    fragmentShader: fragmentShader, // Use the imported fragment shader
+  //  });
+  const shaderMaterial = new THREE.ShaderMaterial({
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    uniforms: {
+      iTime: { value: 0 },
+      iResolution: {
+        value: new THREE.Vector3(window.innerWidth, window.innerHeight, 1),
+      },
+      iChannel0: { value: dayTexture }, // Earth texture
+      iChannel1: { value: cloudTexture }, // Cloud texture
+    },
+    transparent: false,
+  });
+
 
 
   const cloudGeometry = new THREE.SphereGeometry(10.05, 64, 64);
@@ -113,6 +127,8 @@ const createEarthScene = () => {
     }
     useShader = !useShader;
   });
+
+  let startTime = Date.now();
 
 
   const createSatellite = (
@@ -220,6 +236,9 @@ const createEarthScene = () => {
 
     clouds.rotation.y += 0.0007;
 
+    let elapsedTime = (Date.now() - startTime) / 1000; // Calculate elapsed time in seconds
+    shaderMaterial.uniforms.iTime.value = elapsedTime; 
+
     satellites.forEach((satellite) => {
       satellite.angle += satellite.orbitSpeed * satellite.direction;
       satellite.group.position.x =
@@ -228,7 +247,6 @@ const createEarthScene = () => {
         satellite.orbitRadius * Math.sin(satellite.angle);
       satellite.group.lookAt(earth.position);
     });
-
 
     controls.update();
 
