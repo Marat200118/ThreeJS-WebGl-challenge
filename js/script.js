@@ -1,15 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { vertexShader, fragmentShader } from '/shaders/planetShader.js';
+import { vertexShader, fragmentShader } from "/shaders/planetShader.js";
+// import { fragmentShader as cloudFragmentShader } from "/shaders/cloudShader.glsl";
+import { cloudFragmentShader } from "/shaders/cloudShader.js";
 
 
-// function loadShader(path, callback) {
-//   fetch(path)
-//     .then((response) => response.text())
-//     .then((shader) => {
-//       callback(shader);
-//     });
-// }
 
 const createEarthScene = () => {
   const scene = new THREE.Scene();
@@ -75,8 +70,6 @@ const createEarthScene = () => {
     transparent: false,
   });
 
-
-
   const cloudGeometry = new THREE.SphereGeometry(10.05, 64, 64);
   const cloudMaterial = new THREE.MeshStandardMaterial({
     alphaMap: cloudTexture,
@@ -85,6 +78,16 @@ const createEarthScene = () => {
   });
   const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
   scene.add(clouds);
+
+    const cloudShaderMaterial = new THREE.ShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: cloudFragmentShader,
+      uniforms: {
+        iTime: { value: 0 },
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5);
   directionalLight.position.set(50, 0, 30);
@@ -111,25 +114,32 @@ const createEarthScene = () => {
   const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
   scene.add(lightHelper);
 
-  let useShader = false;
+  // let useShader = false;
+  // const button = document.createElement("button");
+  // button.innerHTML = "Toggle Shader";
+  // button.style.position = "absolute";
+  // button.style.top = "20px";
+  // button.style.left = "20px";
+  // document.body.appendChild(button);
+
+  let useCloudShader = false;
   const button = document.createElement("button");
-  button.innerHTML = "Toggle Shader";
+  button.innerHTML = "Toggle Cloud Shader";
   button.style.position = "absolute";
   button.style.top = "20px";
   button.style.left = "20px";
   document.body.appendChild(button);
 
   button.addEventListener("click", () => {
-    if (useShader) {
-      earth.material = earthMaterial; // Switch back to original material
+    if (useCloudShader) {
+      clouds.material = defaultCloudMaterial; 
     } else {
-      earth.material = shaderMaterial; // Apply the shader material
+      clouds.material = cloudShaderMaterial;
     }
-    useShader = !useShader;
+    useCloudShader = !useCloudShader;
   });
 
   let startTime = Date.now();
-
 
   const createSatellite = (
     scene,
@@ -229,6 +239,7 @@ const createEarthScene = () => {
     satellites.push(satellite);
   }
 
+
   const animate = () => {
     requestAnimationFrame(animate);
 
@@ -236,8 +247,8 @@ const createEarthScene = () => {
 
     clouds.rotation.y += 0.0007;
 
-    let elapsedTime = (Date.now() - startTime) / 1000; // Calculate elapsed time in seconds
-    shaderMaterial.uniforms.iTime.value = elapsedTime; 
+    let elapsedTime = (Date.now() - startTime) / 1000;
+    cloudShaderMaterial.uniforms.iTime.value = elapsedTime;
 
     satellites.forEach((satellite) => {
       satellite.angle += satellite.orbitSpeed * satellite.direction;
