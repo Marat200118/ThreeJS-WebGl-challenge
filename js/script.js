@@ -1,10 +1,23 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { vertexShader, fragmentShader } from "/shaders/planetShader.js";
-// import { fragmentShader as cloudFragmentShader } from "/shaders/cloudShader.glsl";
-import { cloudFragmentShader } from "/shaders/cloudShader.js";
+import { cloudFragmentShader, vertexShader } from "/shaders/cloudShader.js";
+import { uniform } from "three/webgpu";
+// import { createSatellite } from "/models/satellite.js";
 
+let uniforms = {
+  iTime: { value: 0 },
+  iMouse: { value: new THREE.Vector2(0.5, 0.5) },
+  cloudscale: { value: 2.1 },
+  speed: { value: 0.03 },
+  clouddark: { value: 0.5 },
+  cloudlight: { value: 0.3 },
+  cloudcover: { value: 0.7 },
+  cloudalpha: { value: 8.0 },
+  skytint: { value: 0.5 },
+  cloudTexture: { value: null },
+};
 
+let useShaderClouds = false;
 
 const createEarthScene = () => {
   const scene = new THREE.Scene();
@@ -30,18 +43,17 @@ const createEarthScene = () => {
   const textureLoader = new THREE.TextureLoader();
   const dayTexture = textureLoader.load("/assets/earth.jpg");
   const bumpTexture = textureLoader.load("/assets/bump-earth.jpg");
-  const nightTexture = textureLoader.load("/assets/earth-night.jpg");
+  const nightTexture = textureLoader.load("/assets/night.png");
   const cloudTexture = textureLoader.load("/assets/clouds.png");
-  const gayabackground = textureLoader.load("/assets/gayabackground.png");
-  gayabackground.mapping = THREE.EquirectangularReflectionMapping;
-  gayabackground.opacity = 0.5;
+  // const gayabackground = textureLoader.load("/assets/gayabackground.png");
+  // gayabackground.mapping = THREE.EquirectangularReflectionMapping;
+  // gayabackground.opacity = 0.1;
 
-  scene.background = gayabackground;
+  // scene.background = gayabackground;
 
   const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
-
   const earthMaterial = new THREE.MeshStandardMaterial({
-    map: dayTexture, // Day map
+    map: dayTexture,
     bumpMap: bumpTexture,
     bumpScale: 0.05,
     emissiveMap: nightTexture,
@@ -52,42 +64,28 @@ const createEarthScene = () => {
   const earth = new THREE.Mesh(earthGeometry, earthMaterial);
   scene.add(earth);
 
-  //  const shaderMaterial = new THREE.ShaderMaterial({
-  //    vertexShader: vertexShader, // Use the imported vertex shader
-  //    fragmentShader: fragmentShader, // Use the imported fragment shader
-  //  });
-  const shaderMaterial = new THREE.ShaderMaterial({
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
-    uniforms: {
-      iTime: { value: 0 },
-      iResolution: {
-        value: new THREE.Vector3(window.innerWidth, window.innerHeight, 1),
-      },
-      iChannel0: { value: dayTexture }, // Earth texture
-      iChannel1: { value: cloudTexture }, // Cloud texture
-    },
-    transparent: false,
-  });
-
   const cloudGeometry = new THREE.SphereGeometry(10.05, 64, 64);
   const cloudMaterial = new THREE.MeshStandardMaterial({
     alphaMap: cloudTexture,
     transparent: true,
+    opacity: 0.7,
     side: THREE.DoubleSide,
   });
   const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
   scene.add(clouds);
+  // uniforms.cloudTexture.value = cloudTexture;
 
-    const cloudShaderMaterial = new THREE.ShaderMaterial({
-      vertexShader: vertexShader,
-      fragmentShader: cloudFragmentShader,
-      uniforms: {
-        iTime: { value: 0 },
-      },
-      transparent: true,
-      side: THREE.DoubleSide,
-    });
+  const cloudShaderMaterial = new THREE.ShaderMaterial({
+    vertexShader: vertexShader,
+    fragmentShader: cloudFragmentShader,
+    uniforms: uniforms,
+    transparent: true,
+    side: THREE.DoubleSide,
+  });
+
+  const cloudShaderMesh = new THREE.Mesh(cloudGeometry, cloudShaderMaterial);
+  cloudShaderMesh.visible = false;
+  scene.add(cloudShaderMesh);
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 3.5);
   directionalLight.position.set(50, 0, 30);
@@ -113,31 +111,6 @@ const createEarthScene = () => {
 
   const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
   scene.add(lightHelper);
-
-  // let useShader = false;
-  // const button = document.createElement("button");
-  // button.innerHTML = "Toggle Shader";
-  // button.style.position = "absolute";
-  // button.style.top = "20px";
-  // button.style.left = "20px";
-  // document.body.appendChild(button);
-
-  let useCloudShader = false;
-  const button = document.createElement("button");
-  button.innerHTML = "Toggle Cloud Shader";
-  button.style.position = "absolute";
-  button.style.top = "20px";
-  button.style.left = "20px";
-  document.body.appendChild(button);
-
-  button.addEventListener("click", () => {
-    if (useCloudShader) {
-      clouds.material = defaultCloudMaterial; 
-    } else {
-      clouds.material = cloudShaderMaterial;
-    }
-    useCloudShader = !useCloudShader;
-  });
 
   let startTime = Date.now();
 
@@ -194,6 +167,16 @@ const createEarthScene = () => {
     dishBase.position.set(0, 0.2, -0.2);
     satelliteGroup.add(dishBase);
 
+    const pointLight = new THREE.PointLight(0xfffff, 20);
+    pointLight.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 16, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff0040 })
+      )
+    );
+    pointLight.position.set(0, 0.1, -0.35);
+    satelliteGroup.add(pointLight);
+
     const dishGeometry = new THREE.CylinderGeometry(0, 0.15, 0.3, 32, 1, true);
     const dishMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
     const dish = new THREE.Mesh(dishGeometry, dishMaterial);
@@ -239,13 +222,29 @@ const createEarthScene = () => {
     satellites.push(satellite);
   }
 
+  const button = document.createElement("button");
+  button.innerHTML = "Toggle Cloud Shader";
+  button.style.position = "absolute";
+  button.style.top = "20px";
+  button.style.right = "20px";
+  document.body.appendChild(button);
+
+  button.addEventListener("click", () => {
+    useShaderClouds = !useShaderClouds;
+    clouds.visible = !useShaderClouds;
+    cloudShaderMesh.visible = useShaderClouds;
+
+    document.getElementById("controls").style.display = useShaderClouds
+      ? "block"
+      : "none";
+  });
 
   const animate = () => {
     requestAnimationFrame(animate);
 
     earth.rotation.y += 0.0005;
 
-    clouds.rotation.y += 0.0007;
+    // clouds.rotation.y += 0.0007;
 
     let elapsedTime = (Date.now() - startTime) / 1000;
     cloudShaderMaterial.uniforms.iTime.value = elapsedTime;
@@ -259,6 +258,12 @@ const createEarthScene = () => {
       satellite.group.lookAt(earth.position);
     });
 
+    if (useShaderClouds) {
+      cloudShaderMesh.rotation.y += 0.0007;
+    } else {
+      clouds.rotation.y += 0.0007;
+    }
+
     controls.update();
 
     renderer.render(scene, camera);
@@ -268,6 +273,33 @@ const createEarthScene = () => {
 };
 
 const init = async () => {
+  window.addEventListener("mousemove", (event) => {
+    uniforms.iMouse.value.x = event.clientX / window.innerWidth;
+    uniforms.iMouse.value.y = 1 - event.clientY / window.innerHeight;
+  });
+
+  document.getElementById("cloudscale").addEventListener("input", (e) => {
+    uniforms.cloudscale.value = parseFloat(e.target.value);
+  });
+  document.getElementById("speed").addEventListener("input", (e) => {
+    uniforms.speed.value = parseFloat(e.target.value);
+  });
+  document.getElementById("clouddark").addEventListener("input", (e) => {
+    uniforms.clouddark.value = parseFloat(e.target.value);
+  });
+  document.getElementById("cloudlight").addEventListener("input", (e) => {
+    uniforms.cloudlight.value = parseFloat(e.target.value);
+  });
+  document.getElementById("cloudcover").addEventListener("input", (e) => {
+    uniforms.cloudcover.value = parseFloat(e.target.value);
+  });
+  document.getElementById("cloudalpha").addEventListener("input", (e) => {
+    uniforms.cloudalpha.value = parseFloat(e.target.value);
+  });
+  document.getElementById("skytint").addEventListener("input", (e) => {
+    uniforms.skytint.value = parseFloat(e.target.value);
+  });
+
   createEarthScene();
 };
 

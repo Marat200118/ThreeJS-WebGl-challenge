@@ -1,17 +1,19 @@
 const cloudFragmentShader = `
 uniform float iTime;
+uniform vec2 iMouse; // mouse position in normalized space
 varying vec2 vUv;
 
-const float cloudscale = 2.1;
-const float speed = 0.03;
-const float clouddark = 0.5;
-const float cloudlight = 0.3;
-const float cloudcover = 0.7;
-const float cloudalpha = 8.0;
-const float skytint = 0.5;
+uniform float cloudscale;
+uniform float speed;
+uniform float clouddark;
+uniform float cloudlight;
+uniform float cloudcover;
+uniform float cloudalpha;
+uniform float skytint;
+uniform sampler2D cloudTexture; // Regular cloud texture for blending
+
 const vec3 skycolour1 = vec3(0.2, 0.4, 0.6);
 const vec3 skycolour2 = vec3(0.4, 0.7, 1.0);
-
 const mat2 m = mat2( 1.6,  1.2, -1.2,  1.6 );
 
 vec2 hash( vec2 p ) {
@@ -44,6 +46,20 @@ float fbm(vec2 n) {
 
 void main() {
     vec2 uv = vUv;
+
+    // Compute distance from the mouse to the fragment and limit the effect to a localized region
+    float distanceToMouse = distance(uv, iMouse);
+
+    // Apply a smooth falloff for the warp effect (like a soft circular gradient)
+    float influence = smoothstep(0.15, 0.0, distanceToMouse); // Gradual transition near the edges
+
+    if (distanceToMouse < 0.15) {  // Apply warp effect within a smaller radius
+        float angle = atan(uv.y - iMouse.y, uv.x - iMouse.x);
+        angle += iTime * 3.0; // Time-based rotation for spiral effect
+        float radius = length(uv - iMouse) * 0.5;
+        uv.x = mix(uv.x, iMouse.x + radius * cos(angle), influence);
+        uv.y = mix(uv.y, iMouse.y + radius * sin(angle), influence);
+    }
 
     float time = iTime * speed;
     float q = fbm(uv * cloudscale * 0.5);
@@ -99,9 +115,13 @@ void main() {
 
     f = cloudcover + cloudalpha * f * r;
 
-    vec3 result = mix(skycolour, clamp(skytint * skycolour + cloudcolour, 0.0, 1.0), clamp(f + c, 0.0, 1.0));
+    vec3 proceduralClouds = mix(skycolour, clamp(skytint * skycolour + cloudcolour, 0.0, 1.0), clamp(f + c, 0.0, 1.0));
 
-    gl_FragColor = vec4(result, 0.3);
+    // Blend with the regular cloud texture
+    vec4 textureClouds = texture2D(cloudTexture, vUv);
+    vec3 finalClouds = mix(textureClouds.rgb, proceduralClouds, 0.5);
+
+    gl_FragColor = vec4(finalClouds, 0.8); 
 }
 `;
 export { cloudFragmentShader };
@@ -114,4 +134,5 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
+
 export { vertexShader };

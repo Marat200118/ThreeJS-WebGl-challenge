@@ -1,0 +1,6 @@
+#controls {
+    position: absolute;
+    z-index: 3;
+    top: 2rem;
+    color: white;
+}
