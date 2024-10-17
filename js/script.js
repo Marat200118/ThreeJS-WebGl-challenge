@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { cloudFragmentShader, vertexShader } from "/shaders/cloudShader.js";
-import * as satelliteManager from "./satelliteManager.js";
+import * as satellitesRealTime from "./satellitesRealTime.js";
+import { createSatellite } from "/models/satellite.js";
 
 
 let uniforms = {
@@ -27,9 +28,12 @@ let satellitesLoaded = false;
 
 const createEarthScene = async () => {
 
+  let startTime = Date.now();
+
+  const satellites = [];
+  const satelliteCount = 5;
 
   const scene = new THREE.Scene();
-
   const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
@@ -72,12 +76,10 @@ const createEarthScene = async () => {
     showSatellites = !showSatellites;
 
     if (!satellitesLoaded) {
-      // Fetch satellite data only the first time the user toggles the button
-      satelliteMarkers = await satelliteManager.addSatellitesToScene(scene);
+      satelliteMarkers = await satellitesRealTime.addSatellitesToScene(scene);
       satellitesLoaded = true;
     }
 
-    // Toggle satellite visibility
     satelliteMarkers.forEach(({ marker }) => {
       marker.visible = showSatellites;
     });
@@ -105,7 +107,7 @@ const createEarthScene = async () => {
   });
   const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
   scene.add(clouds);
-  // uniforms.cloudTexture.value = cloudTexture;
+
 
   const cloudShaderMaterial = new THREE.ShaderMaterial({
     vertexShader: vertexShader,
@@ -144,132 +146,11 @@ const createEarthScene = async () => {
   const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
   scene.add(lightHelper);
 
-  let startTime = Date.now();
-
-  const createSatellite = (
-    scene,
-    orbitRadius,
-    orbitSpeed,
-    startAngle,
-    direction
-  ) => {
-    const satelliteGroup = new THREE.Group();
-
-    // Satellite Main Body
-    const bodyGeometry = new THREE.BoxGeometry(0.6, 0.4, 0.4);
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
-    const satelliteBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    satelliteGroup.add(satelliteBody);
-
-    // Solar Panel Support Arms
-    const armGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1, 32);
-    const armMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
-
-    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-    leftArm.position.set(-0.8, 0, 0);
-    leftArm.rotation.z = Math.PI / 2;
-    satelliteGroup.add(leftArm);
-
-    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-    rightArm.position.set(0.8, 0, 0);
-    rightArm.rotation.z = Math.PI / 2;
-    satelliteGroup.add(rightArm);
-
-    // Solar Panels
-    const panelGeometry = new THREE.PlaneGeometry(2.5, 0.5);
-    const panelMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide,
-    });
-
-    const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    leftPanel.position.set(-2.2, 0, 0);
-    satelliteGroup.add(leftPanel);
-
-    const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
-    rightPanel.position.set(2.2, 0, 0);
-    satelliteGroup.add(rightPanel);
-
-    // Antenna Dish
-    const dishBaseGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 32);
-    const dishBaseMaterial = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-    });
-    const dishBase = new THREE.Mesh(dishBaseGeometry, dishBaseMaterial);
-    dishBase.position.set(0, 0.2, -0.2);
-    satelliteGroup.add(dishBase);
-
-    const pointLight = new THREE.PointLight(0xffb406, 40);
-    pointLight.add(
-      new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 16, 8),
-        new THREE.MeshBasicMaterial({ color: 0xffb406 })
-      )
-    );
-    pointLight.position.set(0, 0.1, -0.35);
-    satelliteGroup.add(pointLight);
-
-    const createPanelLight = (x, y, z) => {
-      const light = new THREE.PointLight(0xffffff, 10, 10);
-      light.add(
-        new THREE.Mesh(
-          new THREE.SphereGeometry(0.05, 8, 8),
-          new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            opacity: 0.8,
-            transparent: true, 
-          })
-        )
-      );
-      light.position.set(x, y, z);
-      satelliteGroup.add(light);
-      return light;
-    };
-
-    // Add small lights to the four corners of both solar panels
-    const panelLights = [
-      createPanelLight(-3.45, 0.25, 0),
-      createPanelLight(-3.45, -0.25, 0),
-      createPanelLight(3.45, 0.25, 0),
-      createPanelLight(3.45, -0.25, 0),
-    ];
-
-    const dishGeometry = new THREE.CylinderGeometry(0, 0.15, 0.3, 32, 1, true);
-    const dishMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-    const dish = new THREE.Mesh(dishGeometry, dishMaterial);
-    dish.position.set(0, 0.45, -0.2);
-    dish.rotation.x = -Math.PI / 2;
-    satelliteGroup.add(dish);
-
-    satelliteGroup.scale.set(0.5, 0.5, 0.5);
-
-    satelliteGroup.position.set(
-      orbitRadius * Math.cos(startAngle),
-      0,
-      orbitRadius * Math.sin(startAngle)
-    );
-
-    scene.add(satelliteGroup);
-
-    return {
-      group: satelliteGroup,
-      pointLight,
-      panelLights,
-      orbitRadius,
-      orbitSpeed,
-      angle: startAngle,
-      direction,
-    };
-  };
-
-  const satellites = [];
-  const satelliteCount = 5;
-
   for (let i = 0; i < satelliteCount; i++) {
-    const orbitRadius = 15 + Math.random() * 10; // Random radius between 15 and 25
-    const orbitSpeed = 0.001 + Math.random() * 0.002; // Random speed between 0.001 and 0.003
-    const startAngle = Math.random() * Math.PI * 2; // Random start angle
-    const direction = Math.random() > 0.5 ? 1 : -1; // Random orbit direction (clockwise/counterclockwise)
+    const orbitRadius = 15 + Math.random() * 10;
+    const orbitSpeed = 0.001 + Math.random() * 0.002;
+    const startAngle = Math.random() * Math.PI * 2; 
+    const direction = Math.random() > 0.5 ? 1 : -1; 
 
     const satellite = createSatellite(
       scene,
@@ -302,7 +183,7 @@ const createEarthScene = async () => {
     requestAnimationFrame(animate);
 
     if (showSatellites && satelliteMarkers.length > 0) {
-      satelliteManager.updateSatellitePositions(satelliteMarkers);
+      satellitesRealTime.updateSatellitePositions(satelliteMarkers);
     }
 
     earth.rotation.y += 0.0005;
@@ -383,7 +264,7 @@ const showSatellitePopup = (satelliteName) => {
   popup.style.top = `${event.clientY + 10}px`;
 
   setTimeout(() => {
-    popup.remove(); // Remove the popup after a few seconds
+    popup.remove();
     removeSatelliteTrajectory();
   }, 5000);
 }
@@ -391,12 +272,14 @@ const showSatellitePopup = (satelliteName) => {
 const displaySatelliteTrajectory = (satrec, scene) => {
   const points = [];
   const now = new Date();
-  const timeStep = 60; // Time step for calculating trajectory points (in seconds)
+  const timeStep = 60;
 
   for (let i = -43200; i <= 43200; i += timeStep) {
-    // Cover past and future 12 hours
     const futureTime = new Date(now.getTime() + i * 1000);
-    const position = satelliteManager.getSatellitePosition(satrec, futureTime);
+    const position = satellitesRealTime.getSatellitePosition(
+      satrec,
+      futureTime
+    );
     points.push(position);
   }
 
@@ -404,7 +287,6 @@ const displaySatelliteTrajectory = (satrec, scene) => {
   const trajectoryMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
   const trajectoryLine = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
 
-  // Remove existing trajectory
   if (activeTrajectory) {
     scene.remove(activeTrajectory);
   }
@@ -413,7 +295,6 @@ const displaySatelliteTrajectory = (satrec, scene) => {
   activeTrajectory = trajectoryLine;
 };
 
-// Remove Satellite Trajectory
 const removeSatelliteTrajectory = () => {
   if (activeTrajectory) {
     activeTrajectory.visible = false;
@@ -422,7 +303,6 @@ const removeSatelliteTrajectory = () => {
 
 
 const init = async () => {
-
 
   document.getElementById("cloudscale").addEventListener("input", (e) => {
     uniforms.cloudscale.value = parseFloat(e.target.value);

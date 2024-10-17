@@ -3,12 +3,11 @@ import * as satellite from "satellite.js";
 
 let cachedTLEData = null;
 let lastFetchTime = null;
-const TLE_FETCH_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+const TLE_FETCH_INTERVAL = 12 * 60 * 60 * 1000;
 
 export async function fetchSatelliteTLEs() {
   const currentTime = new Date().getTime();
 
-  // Only fetch if we haven't fetched recently (within the interval)
   if (
     cachedTLEData &&
     lastFetchTime &&
@@ -24,7 +23,6 @@ export async function fetchSatelliteTLEs() {
     const data = await response.text();
     const tleData = data.split("\n").filter((line) => line.trim());
 
-    // Cache the data and update the fetch time
     cachedTLEData = tleData;
     lastFetchTime = currentTime;
 
@@ -61,7 +59,6 @@ export function getSatellitePosition(satrec, time) {
   const positionAndVelocity = satellite.propagate(satrec, time);
   const positionEci = positionAndVelocity.position;
 
-  // Convert from ECI to geodetic coordinates (lat, lon, altitude)
   const positionGd = satellite.eciToGeodetic(positionEci, gmst);
   const longitude = satellite.degreesLong(positionGd.longitude);
   const latitude = satellite.degreesLat(positionGd.latitude);
@@ -71,7 +68,7 @@ export function getSatellitePosition(satrec, time) {
 
 function getSatelliteColor(satelliteName) {
   if (satelliteName.includes("STARLINK")) {
-    return 0xffff00; // Yellow for Starlink
+    return 0xffff00;
   } else if (satelliteName.includes("COMMUNICATION")) {
     return 0x0000ff;
   } else {
