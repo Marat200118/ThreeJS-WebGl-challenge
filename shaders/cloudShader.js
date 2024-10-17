@@ -1,6 +1,6 @@
 const cloudFragmentShader = `
 uniform float iTime;
-uniform vec2 iMouse; // mouse position in normalized space
+uniform vec2 iMouse;
 varying vec2 vUv;
 
 uniform float cloudscale;
@@ -10,7 +10,7 @@ uniform float cloudlight;
 uniform float cloudcover;
 uniform float cloudalpha;
 uniform float skytint;
-uniform sampler2D cloudTexture; // Regular cloud texture for blending
+uniform sampler2D cloudTexture;
 
 const vec3 skycolour1 = vec3(0.2, 0.4, 0.6);
 const vec3 skycolour2 = vec3(0.4, 0.7, 1.0);
@@ -47,15 +47,13 @@ float fbm(vec2 n) {
 void main() {
     vec2 uv = vUv;
 
-    // Compute distance from the mouse to the fragment and limit the effect to a localized region
     float distanceToMouse = distance(uv, iMouse);
 
-    // Apply a smooth falloff for the warp effect (like a soft circular gradient)
-    float influence = smoothstep(0.15, 0.0, distanceToMouse); // Gradual transition near the edges
+    float influence = smoothstep(0.15, 0.0, distanceToMouse);
 
-    if (distanceToMouse < 0.15) {  // Apply warp effect within a smaller radius
+    if (distanceToMouse < 0.15) {
         float angle = atan(uv.y - iMouse.y, uv.x - iMouse.x);
-        angle += iTime * 3.0; // Time-based rotation for spiral effect
+        angle += iTime * 3.0;
         float radius = length(uv - iMouse) * 0.5;
         uv.x = mix(uv.x, iMouse.x + radius * cos(angle), influence);
         uv.y = mix(uv.y, iMouse.y + radius * sin(angle), influence);
@@ -117,7 +115,6 @@ void main() {
 
     vec3 proceduralClouds = mix(skycolour, clamp(skytint * skycolour + cloudcolour, 0.0, 1.0), clamp(f + c, 0.0, 1.0));
 
-    // Blend with the regular cloud texture
     vec4 textureClouds = texture2D(cloudTexture, vUv);
     vec3 finalClouds = mix(textureClouds.rgb, proceduralClouds, 0.5);
 
