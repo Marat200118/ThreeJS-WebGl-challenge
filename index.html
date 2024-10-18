@@ -6,29 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <link rel="stylesheet" href="styles/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <title>The earth</title>
-  <style>
-    html,
-    body {
-      margin: 0;
-      height: 100%;
-    }
-
-    body {
-      background: black
-    }
-
-    #c {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  </style>
 </head>
 
 <body>
   <canvas id="c"></canvas>
+  
   <div id="controls" style="display: none;">
+    <h2>Cloud Shader Controls</h2>
     <div class="slider-container">
       <label for="cloudscale">Cloud Scale</label>
       <input type="range" id="cloudscale" min="0.5" max="5.0" step="0.1" value="2.1">
@@ -54,6 +40,32 @@
       <input type="range" id="skytint" min="0.1" max="1.0" step="0.1" value="0.5">
     </div>
   </div>
+
+  <div class="controls">
+    <button class="toggle-background">Hide Background</button>
+    <button class="toggle-satellites">Show Real-Time Satellites</button>
+    <button class="toggle-cloud-shader">Show Cloud Shader</button>
+  </div>
+
+  <div class="satellite-indicator" style="display: none;">
+    <h3>Satellite Key</h3>
+    <div class="satellite-type">
+      <span class="satellite-dot" style="background-color: #ffff00;"></span> Starlink
+    </div>
+    <div class="satellite-type">
+      <span class="satellite-dot" style="background-color: #0000ff;"></span> Communication Satellites
+    </div>
+    <div class="satellite-type">
+      <span class="satellite-dot" style="background-color: #008e00;"></span> Military Satellites
+    </div>
+    <div class="satellite-type">
+      <span class="satellite-dot" style="background-color: #ffa500;"></span> Research Satellites
+    </div>
+    <div class="satellite-type">
+      <span class="satellite-dot" style="background-color: #ff0000;"></span> Other Satellites
+    </div>
+  </div>
+
   <script src="js/script.js" type="module"></script>
 </body>
 

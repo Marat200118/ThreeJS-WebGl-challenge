@@ -68,9 +68,32 @@ export function getSatellitePosition(satrec, time) {
 
 function getSatelliteColor(satelliteName) {
   if (satelliteName.includes("STARLINK")) {
-    return 0xffff00;
-  } else if (satelliteName.includes("COMMUNICATION")) {
+    return 0xffff00; 
+  } else if (
+    satelliteName.includes("UFO") ||
+    satelliteName.includes("INMARSAT") ||
+    satelliteName.includes("THURAYA") ||
+    satelliteName.includes("DIRECTV") ||
+    satelliteName.includes("INTELSAT")
+  ) {
     return 0x0000ff;
+  } else if (
+    satelliteName.includes("MILITARY") ||
+    satelliteName.includes("USA") ||
+    satelliteName.includes("OPS") ||
+    satelliteName.includes("DSP") ||
+    satelliteName.includes("MILSTAR")
+  ) {
+    return 0x008e00;
+  } else if (
+    satelliteName.includes("RESEARCH") ||
+    satelliteName.includes("TEMPSAT") ||
+    satelliteName.includes("UOSAT") ||
+    satelliteName.includes("CALIPSO") ||
+    satelliteName.includes("SORCE") ||
+    satelliteName.includes("AURA")
+  ) {
+    return 0xffa500;
   } else {
     return 0xff0000;
   }

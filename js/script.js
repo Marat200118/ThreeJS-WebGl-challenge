@@ -25,6 +25,7 @@ let satelliteMarkers = [];
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 let satellitesLoaded = false;
+let showBackground = true; 
 
 const createEarthScene = async () => {
 
@@ -57,33 +58,10 @@ const createEarthScene = async () => {
   const bumpTexture = textureLoader.load("/assets/bump-earth.jpg");
   const nightTexture = textureLoader.load("/assets/night.png");
   const cloudTexture = textureLoader.load("/assets/clouds.png");
-  // const gayabackground = textureLoader.load("/assets/gayabackground.png");
-  // gayabackground.mapping = THREE.EquirectangularReflectionMapping;
-  // gayabackground.opacity = 0.1;
+  const gayabackground = textureLoader.load("/assets/gayabackground.png");
+  gayabackground.mapping = THREE.EquirectangularReflectionMapping;
+  scene.background = gayabackground;
 
-  // scene.background = gayabackground;
-
-  // const satelliteMarkers = await satelliteManager.addSatellitesToScene(scene);
-
-  const toggleSatellitesButton = document.createElement("button");
-  toggleSatellitesButton.innerHTML = "Toggle Real-Time Satellites";
-  toggleSatellitesButton.style.position = "absolute";
-  toggleSatellitesButton.style.top = "50px";
-  toggleSatellitesButton.style.right = "20px";
-  document.body.appendChild(toggleSatellitesButton);
-
-  toggleSatellitesButton.addEventListener("click", async () => {
-    showSatellites = !showSatellites;
-
-    if (!satellitesLoaded) {
-      satelliteMarkers = await satellitesRealTime.addSatellitesToScene(scene);
-      satellitesLoaded = true;
-    }
-
-    satelliteMarkers.forEach(({ marker }) => {
-      marker.visible = showSatellites;
-    });
-  });
 
   const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
   const earthMaterial = new THREE.MeshStandardMaterial({
@@ -162,21 +140,51 @@ const createEarthScene = async () => {
     satellites.push(satellite);
   }
 
-  const button = document.createElement("button");
-  button.innerHTML = "Toggle Cloud Shader";
-  button.style.position = "absolute";
-  button.style.top = "20px";
-  button.style.right = "20px";
-  document.body.appendChild(button);
 
-  button.addEventListener("click", () => {
+  const toggleBackgroundBtn = document.querySelector(".toggle-background");
+  toggleBackgroundBtn.addEventListener("click", () => {
+    showBackground = !showBackground;
+    scene.background = showBackground ? gayabackground : null;
+    toggleBackgroundBtn.innerText = showBackground
+      ? "Hide Background"
+      : "Show Background";
+  });
+
+  const toggleSatellitesBtn = document.querySelector(".toggle-satellites");
+  const satelliteIndicator = document.querySelector(".satellite-indicator");
+
+  toggleSatellitesBtn.addEventListener("click", async () => {
+    showSatellites = !showSatellites;
+
+    if (!satellitesLoaded) {
+      satelliteMarkers = await satellitesRealTime.addSatellitesToScene(scene);
+      satellitesLoaded = true;
+    }
+
+    satelliteMarkers.forEach(({ marker }) => {
+      marker.visible = showSatellites;
+    });
+
+    toggleSatellitesBtn.innerText = showSatellites
+      ? "Hide Real-Time Satellites"
+      : "Show Real-Time Satellites";
+
+    satelliteIndicator.style.display = showSatellites ? "block" : "none";
+  });
+
+  const toggleCloudShaderBtn = document.querySelector(".toggle-cloud-shader");
+  const controlsDiv = document.querySelector("#controls");
+
+  toggleCloudShaderBtn.addEventListener("click", () => {
     useShaderClouds = !useShaderClouds;
     clouds.visible = !useShaderClouds;
     cloudShaderMesh.visible = useShaderClouds;
 
-    document.getElementById("controls").style.display = useShaderClouds
-      ? "block"
-      : "none";
+    controlsDiv.style.display = useShaderClouds ? "block" : "none";
+
+    toggleCloudShaderBtn.innerText = useShaderClouds
+      ? "Hide Cloud Shader"
+      : "Show Cloud Shader";
   });
 
   const animate = () => {
@@ -253,6 +261,7 @@ const createEarthScene = async () => {
     }
   });
 };
+
 
 const showSatellitePopup = (satelliteName) => {
   const popup = document.createElement("div");
