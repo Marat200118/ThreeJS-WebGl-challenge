@@ -1,6 +1,7 @@
 # Earth 3D Visualization with Real-Time Satellites
 
 This project is a 3D visualization of Earth using **Three.js**. It includes real-time satellite tracking and an interactive cloud shader. The visualization offers the ability to toggle different visual features, such as background, satellite markers, and dynamic cloud shading. The project uses data from **CelesTrak** to fetch satellite orbital data and visualize satellite positions in real-time.
+
 <img width="1457" alt="Screenshot 2024-10-18 at 17 56 11" src="https://github.com/user-attachments/assets/b88717f9-aa8a-497f-a2b9-f6caefb26e0c">
 <img width="1458" alt="Screenshot 2024-10-18 at 17 55 54" src="https://github.com/user-attachments/assets/0d4fb9db-8b10-40f0-844f-a9779e99983f">
 <img width="1462" alt="Screenshot 2024-10-18 at 17 56 33" src="https://github.com/user-attachments/assets/cd97cd87-3bc5-4b02-b3ed-7974331b49fe">
