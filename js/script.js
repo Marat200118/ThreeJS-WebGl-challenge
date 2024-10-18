@@ -121,9 +121,6 @@ const createEarthScene = async () => {
   const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
   scene.add(ambientLight);
 
-  const lightHelper = new THREE.DirectionalLightHelper(directionalLight);
-  scene.add(lightHelper);
-
   for (let i = 0; i < satelliteCount; i++) {
     const orbitRadius = 15 + Math.random() * 10;
     const orbitSpeed = 0.001 + Math.random() * 0.002;
